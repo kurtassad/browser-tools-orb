@@ -174,7 +174,7 @@ workflows:
       - int-test-all:
           name: test-specific-version-all
           executor: cimg-base
-          chrome_version: "131.0.6778.85"
+          chrome_version: "143.0.7499.146"
           firefox_version: "128.0.2"
           filters: *filters
       - int-test-all:
@@ -196,7 +196,7 @@ workflows:
       - int-test-chrome:
           name: test-specific-version-chrome
           executor: cimg-base
-          chrome_version: "131.0.6778.85"
+          chrome_version: "143.0.7499.146"
           filters: *filters
       - int-test-chrome:
           name: test-macos-chrome
