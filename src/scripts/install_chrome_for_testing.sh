@@ -1,6 +1,23 @@
 #!/bin/bash
 if [[ $EUID == 0 ]]; then export SUDO=""; else export SUDO="sudo"; fi
 
+retry() {
+    local -r -i max_attempts=5
+    local -i attempt_num=1
+
+    until "$@"; do
+        if (( attempt_num == max_attempts )); then
+            echo "Attempt $attempt_num failed and there are no more attempts left!"
+            exit 1
+        else
+            echo "Attempt $attempt_num failed! Trying again..."
+            ((attempt_num++))
+            $SUDO rm -rf /var/lib/apt/lists/*
+            sleep 5
+        fi
+    done
+}
+
 cd "$ORB_PARAM_DIR" || { echo "$ORB_PARAM_DIR does not exist. Exiting"; exit 1; }
 
 # process ORB_PARAM_VERSION
@@ -58,7 +75,7 @@ elif command -v apt >/dev/null 2>&1; then
         exit 1
     fi
 
-    $SUDO apt-get update
+    retry $SUDO apt-get update
     $SUDO chmod +r /opt/chrome-for-testing/deb.deps
     while read -r pkg; do
         $SUDO apt-get satisfy -y --no-install-recommends "${pkg}";

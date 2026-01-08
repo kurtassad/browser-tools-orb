@@ -1,6 +1,23 @@
 #!/bin/bash
 if [[ $EUID == 0 ]]; then export SUDO=""; else export SUDO="sudo"; fi
 
+retry() {
+    local -r -i max_attempts=5
+    local -i attempt_num=1
+
+    until "$@"; do
+        if (( attempt_num == max_attempts )); then
+            echo "Attempt $attempt_num failed and there are no more attempts left!"
+            exit 1
+        else
+            echo "Attempt $attempt_num failed! Trying again..."
+            ((attempt_num++))
+            $SUDO rm -rf /var/lib/apt/lists/*
+            sleep 5
+        fi
+    done
+}
+
 # process ORB_PARAM_CHROME_VERSION
 if command -v circleci &>/dev/null; then
   # CircleCI is installed, proceed with substitution
@@ -179,11 +196,11 @@ else
       echo "Installing Chrome for AMD64"
       $SUDO sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list'
     fi
-    $SUDO apt-get update
+    retry $SUDO apt-get update
     DEBIAN_FRONTEND=noninteractive $SUDO apt-get install -y google-chrome-${ORB_PARAM_CHANNEL}
   else
     # Google does not keep older releases in their PPA, but they can be installed manually. HTTPS should be enough to secure the download.
-    $SUDO apt-get update
+    retry $SUDO apt-get update
     wget --no-verbose -O /tmp/chrome.deb "https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-${ORB_PARAM_CHANNEL}/google-chrome-${ORB_PARAM_CHANNEL}_${ORB_PARAM_CHROME_VERSION}-1_amd64.deb" \
       && $SUDO apt-get install -y apt-utils && $SUDO apt-get install -y /tmp/chrome.deb \
       && rm /tmp/chrome.deb

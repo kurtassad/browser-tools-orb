@@ -1,5 +1,23 @@
 #!/bin/bash
 if [[ $EUID == 0 ]]; then export SUDO=""; else export SUDO="sudo"; fi
+
+retry() {
+    local -r -i max_attempts=5
+    local -i attempt_num=1
+
+    until "$@"; do
+        if (( attempt_num == max_attempts )); then
+            echo "Attempt $attempt_num failed and there are no more attempts left!"
+            exit 1
+        else
+            echo "Attempt $attempt_num failed! Trying again..."
+            ((attempt_num++))
+            $SUDO rm -rf /var/lib/apt/lists/*
+            sleep 5
+        fi
+    done
+}
+
 # FUNCTIONS
 grab_firefox_version() {
   if [[ "$ORB_PARAM_FIREFOX_VERSION" == "latest" ]]; then
@@ -58,7 +76,7 @@ else
       which \
       >/dev/null 2>&1
   else
-    $SUDO apt-get update >/dev/null 2>&1 &&
+    retry $SUDO apt-get update >/dev/null 2>&1 &&
       $SUDO apt-get install -y \
         libasound-dev \
         libxt6 \
